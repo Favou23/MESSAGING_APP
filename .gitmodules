@@ -1,0 +1,6 @@
+[submodule "Tutoring_API"]
+	path = Tutoring_API
+	url = https://github.com/Favou23/Tutoring_API.git
+[submodule "messaging_services"]
+	path = messaging_services
+	url = https://github.com/Favou23/messaging_services.git
