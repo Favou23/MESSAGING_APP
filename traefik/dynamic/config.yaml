@@ -1,0 +1,15 @@
+http:
+  middlewares:
+    cors:
+      headers:
+        accessControlAllowOriginList:
+          - "http://localhost:3000"
+          - "http://chat.localhost"
+        accessControlAllowMethods:
+          - GET
+          - POST
+          - OPTIONS
+        accessControlAllowHeaders:
+          - Authorization
+          - Content-Type
+        accessControlAllowCredentials: true

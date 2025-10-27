@@ -1,0 +1,105 @@
+
+
+
+services:
+  traefik:
+      image: traefik:v3.1
+      container_name: traefik
+      command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--entrypoints.websocket.address=:8000"
+      - "--log.level=INFO"
+      ports:
+      - "80:80"
+      - "443:443"
+      - "8080:8080"  # dashboard
+      volumes:
+        - /var/run/docker.sock:/var/run/docker.sock
+        - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
+        - ./traefik/dynamic/:/etc/traefik/dynamic/:ro
+      networks:
+        - backend
+
+  # Auth database
+  auth_db:
+    image: postgres:17
+    container_name: auth_db
+    restart: always
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: godsfavour
+    volumes:
+      - auth_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - "5432:5432"
+
+  # Messaging database
+  messaging_db:
+    image: postgres:17
+    container_name: messaging_db
+    restart: always
+    environment:
+      POSTGRES_DB: messaging_app
+      POSTGRES_USER: favour
+      POSTGRES_PASSWORD: godsfavour
+    volumes:
+      - messaging_postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+    ports:
+      - "5433:5432"  # Different host port!
+
+  redis:
+    image: redis:8
+    container_name: redis
+    restart: always
+    networks:
+      - backend
+
+  auth_service:
+    build: ./Tutoring_API
+    container_name: auth_service
+    depends_on:
+      - auth_db
+      - redis
+    env_file:
+      - ./shared/configs/env/auth.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.auth.rule=Host(`auth.localhost`)"
+      - "traefik.http.services.auth.loadbalancer.server.port=8000"
+    networks:
+      - backend
+
+  messaging_service:
+    build: ./messaging_services
+    container_name: messaging_services
+    depends_on:
+      - messaging_db
+      - redis
+      - auth_service
+    env_file:
+      - ./shared/configs/env/messaging.env
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.chat.rule=Host(`chat.localhost`)"
+      - "traefik.http.services.chat.loadbalancer.server.port=8000"
+      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
+      - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=Upgrade"
+      - "traefik.http.routers.chat.middlewares=websocket"
+    networks:
+      - backend
+
+volumes:
+  auth_postgres_data:
+  messaging_postgres_data:
+
+networks:
+  backend:
+    driver: bridge
