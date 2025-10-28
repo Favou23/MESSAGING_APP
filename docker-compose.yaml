@@ -38,6 +38,11 @@ services:
       - backend
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   # Messaging database
   messaging_db:
@@ -53,7 +58,12 @@ services:
     networks:
       - backend
     ports:
-      - "5433:5432"  # Different host port!
+      - "5433:5432"  # Different host port
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:8
@@ -66,8 +76,10 @@ services:
     build: ./Tutoring_API
     container_name: auth_service
     depends_on:
-      - auth_db
-      - redis
+      auth_db:
+        condition: service_healthy
+      redis:
+        condition: service_started
     env_file:
       - ./shared/configs/env/auth.env
     labels:
@@ -81,9 +93,12 @@ services:
     build: ./messaging_services
     container_name: messaging_services
     depends_on:
-      - messaging_db
-      - redis
-      - auth_service
+      messaging_db:
+        condition: service_healthy 
+      redis:
+        condition: service_started
+      auth_service:
+        condition: service_started
     env_file:
       - ./shared/configs/env/messaging.env
     labels:
