@@ -10,7 +10,6 @@ services:
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
-      - "--entrypoints.websocket.address=:8000"
       - "--log.level=INFO"
       ports:
       - "80:80"
@@ -21,6 +20,7 @@ services:
         # - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
         # - ./traefik/dynamic/:/etc/traefik/dynamic/:ro
       networks:
+        # - traefik
         - backend
 
   # Auth database
@@ -85,9 +85,11 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.auth.rule=Host(`auth.localhost`)"
+      - "traefik.http.routers.auth.entrypoints=web"
       - "traefik.http.services.auth.loadbalancer.server.port=8080"
     networks:
       - backend
+      # - traefik
 
   messaging_service:
     build: ./messaging_services
@@ -101,15 +103,35 @@ services:
         condition: service_started
     env_file:
       - ./shared/configs/env/messaging.env
+    ports:
+      - '8000'
     labels:
+      
       - "traefik.enable=true"
-      - "traefik.http.routers.chat.rule=Host(`chat.localhost`)"
+    
+      # HTTP routes (Swagger, API) - NO WebSocket middleware
+      - "traefik.http.routers.chat-http.rule=Host(`chat.localhost`) && !PathPrefix(`/ws`)"
+      - "traefik.http.routers.chat-http.entrypoints=web"
+      - "traefik.http.routers.chat-http.service=chat"
+      - "traefik.http.routers.chat-http.priority=2"
+    
+      # WebSocket routes ONLY - WITH WebSocket middleware
+      - "traefik.http.routers.chat-ws.rule=Host(`chat.localhost`) && PathPrefix(`/ws`)"
+      - "traefik.http.routers.chat-ws.entrypoints=web"
+      - "traefik.http.routers.chat-ws.service=chat"
+      - "traefik.http.routers.chat-ws.priority=10"
+      - "traefik.http.routers.chat-ws.middlewares=websocket"
+    
+      # Service definition
       - "traefik.http.services.chat.loadbalancer.server.port=8000"
+    
+      # WebSocket middleware definition
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=Upgrade"
-      - "traefik.http.routers.chat.middlewares=websocket"
+
     networks:
       - backend
+      # - traefik
 
 volumes:
   auth_postgres_data:
@@ -118,3 +140,7 @@ volumes:
 networks:
   backend:
     driver: bridge
+  traefik:
+    # name: traefik
+    driver: bridge
+    # external: true

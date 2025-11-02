@@ -4,7 +4,7 @@ http:
       headers:
         accessControlAllowOriginList:
           - "http://localhost:3000"
-          - "http://chat.localhost"
+          - "http://messaging_service:8000"
         accessControlAllowMethods:
           - GET
           - POST
