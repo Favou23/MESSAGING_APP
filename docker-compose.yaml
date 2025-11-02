@@ -104,7 +104,7 @@ services:
     env_file:
       - ./shared/configs/env/messaging.env
     ports:
-      - '8000'
+      - '8000:8000'
     labels:
       
       - "traefik.enable=true"
