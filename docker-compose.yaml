@@ -1,27 +1,22 @@
-
-
-
 services:
   traefik:
-      image: traefik:v3.1
-      container_name: traefik
-      command:
+    image: traefik:v3.1
+    container_name: traefik
+    command:
       - "--api.dashboard=true"
       - "--providers.docker=true"
       - "--entrypoints.web.address=:80"
       - "--entrypoints.websecure.address=:443"
       - "--log.level=INFO"
-      ports:
+    ports:
       - "80:80"
       - "443:443"
       - "8080:8080"  # dashboard
-      volumes:
-        - /var/run/docker.sock:/var/run/docker.sock
-        # - ./traefik/traefik.yml:/etc/traefik/traefik.yml:ro
-        # - ./traefik/dynamic/:/etc/traefik/dynamic/:ro
-      networks:
-        # - traefik
-        - backend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik
+      - backend
 
   # Auth database
   auth_db:
@@ -72,9 +67,9 @@ services:
     networks:
       - backend
 
-  auth_service:
+  authservice:
     build: ./Tutoring_API
-    container_name: auth_service
+    container_name: authservice
     depends_on:
       auth_db:
         condition: service_healthy
@@ -89,7 +84,7 @@ services:
       - "traefik.http.services.auth.loadbalancer.server.port=8080"
     networks:
       - backend
-      # - traefik
+      - traefik
 
   messaging_service:
     build: ./messaging_services
@@ -99,39 +94,33 @@ services:
         condition: service_healthy 
       redis:
         condition: service_started
-      auth_service:
+      authservice:
         condition: service_started
     env_file:
       - ./shared/configs/env/messaging.env
     ports:
       - '8000:8000'
     labels:
-      
       - "traefik.enable=true"
-    
       # HTTP routes (Swagger, API) - NO WebSocket middleware
       - "traefik.http.routers.chat-http.rule=Host(`chat.localhost`) && !PathPrefix(`/ws`)"
       - "traefik.http.routers.chat-http.entrypoints=web"
       - "traefik.http.routers.chat-http.service=chat"
       - "traefik.http.routers.chat-http.priority=2"
-    
       # WebSocket routes ONLY - WITH WebSocket middleware
       - "traefik.http.routers.chat-ws.rule=Host(`chat.localhost`) && PathPrefix(`/ws`)"
       - "traefik.http.routers.chat-ws.entrypoints=web"
       - "traefik.http.routers.chat-ws.service=chat"
       - "traefik.http.routers.chat-ws.priority=10"
       - "traefik.http.routers.chat-ws.middlewares=websocket"
-    
       # Service definition
       - "traefik.http.services.chat.loadbalancer.server.port=8000"
-    
       # WebSocket middleware definition
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Upgrade=websocket"
       - "traefik.http.middlewares.websocket.headers.customrequestheaders.Connection=Upgrade"
-
     networks:
       - backend
-      # - traefik
+      - traefik
 
 volumes:
   auth_postgres_data:
@@ -141,6 +130,6 @@ networks:
   backend:
     driver: bridge
   traefik:
-    # name: traefik
     driver: bridge
-    # external: true
+
+
