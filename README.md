@@ -1,4 +1,4 @@
-# Messaging App — Local Setup & Real-time Messaging Guide
+# Messaging App - Local Setup and Real-time Messaging Guide
 
 This README explains how to run the Messaging App locally (Docker Compose), apply database migrations, and test real-time messaging (WebSockets). It is written for developers who may be new to the project or to Docker/Channels. Follow each section in order.
 
