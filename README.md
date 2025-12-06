@@ -166,10 +166,10 @@ wscat -c "ws://localhost:8000/ws/chat/1/?token=<JWT_USER_2>"
 ## Including sender display name in real-time messages
 The project currently sends `sender_id` in message payloads. Two common approaches to include a sender name:
 
-- **Option A (recommended initially)**: include the username/display name in live payloads only (no DB changes). The consumer fetches a profile once per WebSocket connection (or uses the username from the JWT) and includes `sender_username` in broadcasted messages.
+- **Option A (recommended)**: include the username/display name in live payloads only (no DB changes). The consumer fetches a profile once per WebSocket connection (or uses the username from the JWT) and includes `sender_username` in broadcasted messages.
 - **Option B**: denormalize and store `sender_username` on the `Message` model (requires migration). This preserves historical names even if users rename later.
 
-See `messaging_services/chat/consumers.py` for where to add `sender_username` to the outgoing payload. Option A is quick and works well in most dev setups.
+See `messaging_services/chat/consumers.py` for where to add `sender_username` to the outgoing payload. Option A is quick and works well in most development setups.
 
 ## Troubleshooting
 - **Error: `relation "chat_chatroom" does not exist`** — means migrations haven't been applied. Run the migration steps above.
